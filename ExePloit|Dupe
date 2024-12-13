@@ -11,13 +11,39 @@ local Window = OrionLib:MakeWindow({
     ConfigFolder = "OrionDinosaurConfig"
 })
 
--- Create a new tab for Dinosaur Spawning
+-- Create the main tab
 local DinosaurSpawnTab = Window:MakeTab({
     Name = "Dinosaur Spawner",
     Icon = "rbxassetid://4483362458"
 })
 
--- Function to simulate dinosaur ownership and move dinosaur folder
+-- Function to remove Triceratops from memory card and dinosaur folders
+local function removeTriceratops()
+    local memoryCard = player:FindFirstChild("MemoryCard")
+    if memoryCard then
+        -- Remove Triceratops token from Tokens folder
+        local tokens = memoryCard:FindFirstChild("Tokens")
+        if tokens then
+            local triceratopsToken = tokens:FindFirstChild("Triceratops")
+            if triceratopsToken then
+                triceratopsToken:Destroy()
+                print("Removed Triceratops token from Tokens folder")
+            end
+        end
+
+        -- Remove Triceratops from Dinosaurs folder
+        local dinosaurs = memoryCard:FindFirstChild("Dinosaurs")
+        if dinosaurs then
+            local triceratopsDinosaur = dinosaurs:FindFirstChild("Triceratops")
+            if triceratopsDinosaur then
+                triceratopsDinosaur:Destroy()
+                print("Removed Triceratops from Dinosaurs folder")
+            end
+        end
+    end
+end
+
+-- Function to simulate ownership and move dinosaur folder
 local function simulateOwnershipAndMoveDinoFolder(dinoName)
     local memoryCard = player:FindFirstChild("MemoryCard")
     if not memoryCard then
@@ -43,7 +69,8 @@ local function simulateOwnershipAndMoveDinoFolder(dinoName)
         dinoToken.Parent = tokens
         print("Simulated token ownership of dinosaur:", dinoName)
     else
-        print("Dinosaur token already simulated in inventory:", dinoName)
+        dinoToken.Value = dinoToken.Value + 1
+        print("Incremented dinosaur token count for:", dinoName)
     end
 
     -- Move dinosaur folder from ReplicatedStorage to MemoryCard->Dinosaurs
@@ -130,25 +157,6 @@ local function forceDinosaurSpawn(dinoName)
         wait(0.5)
         workspace.GameEvents.ChangeDinosaur:FireServer(targ)
         print("Forced spawn of dinosaur:", dinoName)
-
-        -- Improved persistence with forced locking on CurrentDino
-        spawn(function()
-            while true do
-                local memoryCard = player:FindFirstChild("MemoryCard")
-                if memoryCard then
-                    local currentDino = memoryCard:FindFirstChild("CurrentDino")
-                    if currentDino and currentDino.Value ~= dinoName then
-                        currentDino.Value = dinoName
-                        print("Forcing CurrentDino to:", dinoName)
-                    end
-                end
-                if player:GetAttribute("CurrentDinosaur") ~= dinoName then
-                    workspace.GameEvents.ChangeDinosaur:FireServer(dinoName)
-                    print("Persisting dinosaur:", dinoName)
-                end
-                wait(0.5)
-            end
-        end)
     end)
 
     if not success then
@@ -174,6 +182,7 @@ DinosaurSpawnTab:AddButton({
     Name = "Force Spawn Dinosaur",
     Callback = function()
         if dinosaurNameInput and dinosaurNameInput ~= "" then
+            removeTriceratops()
             forceDinosaurSpawn(dinosaurNameInput)
         else
             print("Please enter a dinosaur name.")
@@ -191,6 +200,7 @@ if databaseFolder then
                 Name = dino.Name,
                 Callback = function()
                     print("Button clicked for dinosaur:", dino.Name)
+                    removeTriceratops()
                     forceDinosaurSpawn(dino.Name)
                 end
             })
